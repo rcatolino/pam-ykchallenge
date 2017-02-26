@@ -6,6 +6,7 @@ license = "GPLv3"
 
 [dependencies]
 pamsm = { git = "https://github.com/rcatolino/pam_sm_rust" }
+libc = "^0.2"
 
 [lib]
 crate-type = ["dylib"]
