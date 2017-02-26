@@ -1,0 +1,11 @@
+[package]
+name = "pam-ykchallenge"
+version = "0.1.0"
+authors = ["Raphael Catolino <raphael.catolino@gmail.com>"]
+license = "GPLv3"
+
+[dependencies]
+pamsm = { git = "https://github.com/rcatolino/pam_sm_rust" }
+
+[lib]
+crate-type = ["dylib"]
