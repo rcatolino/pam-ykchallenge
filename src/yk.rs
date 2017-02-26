@@ -1,5 +1,30 @@
 use libc::{c_int, c_uint, c_char, c_void};
+use std::ffi::CString;
+use std::io::Write;
+use std::io;
 use std::ptr;
+
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
+#[derive(Debug)]
+enum YkSlotDefs {
+	CONFIG = 1,
+	NAV = 2,
+	CONFIG2 = 3,
+	UPDATE1 = 4,
+	UPDATE2 = 5,
+	SWAP = 6,
+	NDEF = 8,
+	NDEF2 = 9,
+	DEVICE_SERIAL = 0x10,
+	DEVICE_CONFIG = 0x11,
+	SCAN_MAP = 0x12,
+	YK4_CAPABILITIES = 0x13,
+	CHAL_OTP1 = 0x20,
+	CHAL_OTP2 = 0x28,
+	CHAL_HMAC1 = 0x30,
+	CHAL_HMAC2 = 0x38,
+}
 
 struct YkStatus {
     ptr: *mut c_void,
@@ -48,9 +73,42 @@ impl Drop for YkStatus {
     }
 }
 
+#[allow(dead_code)]
+pub enum Slot {
+    Slot1,
+    Slot2,
+}
+
+#[allow(dead_code)]
+pub enum Cmd {
+    OTP,
+    HMAC,
+}
+
 pub struct Yubikey {
     status: YkStatus,
     handle: YkHandle,
+}
+
+pub struct ChallResponse([u8; 64]);
+
+impl ChallResponse {
+    fn new() -> ChallResponse {
+        ChallResponse([0u8; 64])
+    }
+
+    pub fn tohexstring(&mut self, cutoff: Option<usize>) -> io::Result<CString> {
+        // hex length is two hex char per byte, plus a trailing null byte (added later by CString)
+        let length = cutoff.unwrap_or(self.0.len());
+        let mut hex = Vec::<u8>::with_capacity(length * 2 + 1);
+        for byte in self.0.iter().take(length) {
+            try!(write!(hex, "{:02x}", byte))
+        }
+        // this cannot contain any null byte anyway
+        unsafe {
+            Ok(CString::from_vec_unchecked(hex))
+        }
+    }
 }
 
 impl Yubikey {
@@ -90,6 +148,27 @@ impl Yubikey {
 
     pub fn version(&self) -> (u8, u8) {
         (self.status.version_major(), self.status.version_minor())
+    }
+
+    pub fn challenge_response(&self, slot: Slot, cmd: Cmd, challenge: &[u8]) -> Option<ChallResponse> {
+        let ykcmd = match (cmd, slot) {
+            (Cmd::HMAC, Slot::Slot1) => YkSlotDefs::CHAL_HMAC1,
+            (Cmd::HMAC, Slot::Slot2) => YkSlotDefs::CHAL_HMAC2,
+            (Cmd::OTP, Slot::Slot1) => YkSlotDefs::CHAL_OTP1,
+            (Cmd::OTP, Slot::Slot2) => YkSlotDefs::CHAL_OTP2,
+        };
+
+        let mut response = ChallResponse::new();
+        unsafe {
+            if yk_challenge_response(self.handle, ykcmd as u8, 1,
+                                     challenge.len() as u32,
+                                     challenge.as_ptr() as *const c_char,
+                                     response.0.len() as u32,
+                                     response.0.as_mut_ptr() as *mut c_char) == 0 {
+                return None;
+            }
+        }
+        Some(response)
     }
 }
 
