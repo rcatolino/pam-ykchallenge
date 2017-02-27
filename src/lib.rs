@@ -89,7 +89,6 @@ impl PamServiceModule for SM {
                             }
                             Ok(resp) => resp,
                         };
-                        debug!(args.debug, "Response from challenge : {:?}", hexresp);
                         match pamh.set_authtok(&hexresp) {
                             Err(e) => {
                                 debug!(args.debug, "pam_ykchallenge error, re-setting the authentication token : {}", e);
