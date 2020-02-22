@@ -5,8 +5,11 @@ authors = ["Raphael Catolino <raphael.catolino@gmail.com>"]
 license = "GPLv3"
 
 [dependencies]
-pamsm = { git = "https://github.com/rcatolino/pam_sm_rust" }
 libc = "^0.2"
+
+[dependencies.pamsm]
+version = "^0.3"
+features = ["libpam"]
 
 [lib]
 crate-type = ["dylib"]

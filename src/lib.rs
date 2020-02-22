@@ -1,11 +1,11 @@
-extern crate libc;
+#[macro_use]
 extern crate pamsm;
+extern crate libc;
 
 mod yk;
 
 use yk::{Yubikey, Cmd, Slot};
-use pamsm::{PamServiceModule, Pam};
-use pamsm::pam_raw::{PamFlag, PamError};
+use pamsm::{PamServiceModule, PamLibExt, Pam, PamFlag, PamError};
 
 struct SM;
 
@@ -41,13 +41,13 @@ fn parse_args(args: Vec<String>) -> Option<Args> {
         }
     }
     slot.map(|s| Args {
-        debug: debug,
+        debug,
         slot: s,
     })
 }
 
 impl PamServiceModule for SM {
-    fn authenticate(self: &Self, pamh: Pam, _: PamFlag, args: Vec<String>) -> PamError {
+    fn authenticate(pamh: Pam, _: PamFlag, args: Vec<String>) -> PamError {
         let args = match parse_args(args) {
             None => {
                 println!("pam_ykchallenge error, missing or bad argument. Usage : pam_ykchallenge slot=<1|2> [debug=true]");
@@ -112,8 +112,5 @@ impl PamServiceModule for SM {
 }
 
 
-#[no_mangle]
-pub extern "C" fn get_pam_sm() -> Box<PamServiceModule> {
-    return Box::new(SM {});
-}
+pam_module!(SM);
 

@@ -102,7 +102,7 @@ impl ChallResponse {
         let length = cutoff.unwrap_or(self.0.len());
         let mut hex = Vec::<u8>::with_capacity(length * 2 + 1);
         for byte in self.0.iter().take(length) {
-            try!(write!(hex, "{:02x}", byte))
+            write!(hex, "{:02x}", byte)?
         }
         // this cannot contain any null byte anyway
         unsafe {
